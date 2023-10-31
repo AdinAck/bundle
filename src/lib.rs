@@ -82,7 +82,7 @@ impl Parse for BundleData {
 
         let trait_ident: TypeWithGenerics = input.parse()?;
 
-        input.parse::<Token![<]>()?;
+        input.parse::<Token![>]>()?;
 
         let types: Set<Ident> = input.parse()?;
 
@@ -100,7 +100,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let types = bundle_data.types.items;
     let trait_type = bundle_data.trait_type.as_stream();
 
-    quote! {
+    let result = quote! {
         pub enum #name {
             #(#types),*
         }
@@ -117,5 +117,9 @@ pub fn bundle(input: TokenStream) -> TokenStream {
                 }
             }
         }
-    }.into()
+    };
+    
+    println!("{}", result.to_string());
+
+    result.into()
 }

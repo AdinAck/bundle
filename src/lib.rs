@@ -100,7 +100,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let types = bundle_data.types.items;
     let trait_type = bundle_data.trait_type.as_stream();
 
-    let result = quote! {
+    quote! {
         pub enum #name {
             #(#types),*
         }
@@ -117,9 +117,5 @@ pub fn bundle(input: TokenStream) -> TokenStream {
                 }
             }
         }
-    };
-    
-    println!("{}", result.to_string());
-
-    result.into()
+    }.into()
 }

@@ -3,10 +3,37 @@ use syn::{
     parse::Parse,
     Ident,
     braced,
-    Token, Type
+    Token, Generics
 };
 use quote::quote;
 use proc_macro2::TokenStream as TokenStream2;
+
+// can't believe i have to do this
+#[derive(Debug)]
+struct TypeWithGenerics {
+    ident: Ident,
+    generics: Vec<Ident>
+}
+
+impl TypeWithGenerics {
+    fn as_stream(&self) -> TokenStream2 {
+        let ident = &self.ident;
+        let generics = &self.generics;
+
+        quote! (
+            #ident<#(#generics),*>
+        )
+    }
+}
+
+impl Parse for TypeWithGenerics {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let ident: Ident = input.parse()?;
+        let generics = input.parse::<Generics>()?.type_params().map(|t| t.ident.clone()).collect();
+
+        Ok(Self { ident, generics })
+    }
+}
 
 #[derive(Debug)]
 struct Set<T> {
@@ -43,7 +70,7 @@ where
 
 struct BundleData {
     name: Ident,
-    trait_type: Type,
+    trait_type: TypeWithGenerics,
     types: Set<Ident>
 }
 
@@ -53,7 +80,7 @@ impl Parse for BundleData {
 
         input.parse::<Token![<]>()?;
 
-        let trait_ident: Type = input.parse()?;
+        let trait_ident: TypeWithGenerics = input.parse()?;
 
         input.parse::<Token![<]>()?;
 
@@ -71,7 +98,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
 
     let name = bundle_data.name;
     let types = bundle_data.types.items;
-    let trait_type = bundle_data.trait_type;
+    let trait_type = bundle_data.trait_type.as_stream();
 
     quote! {
         pub enum #name {

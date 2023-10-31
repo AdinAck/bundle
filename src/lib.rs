@@ -106,7 +106,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
         }
 
         impl #name {
-            fn with<F, T>(&mut self, closure: mut F) -> T
+            fn with<F, T>(&mut self, mut closure: F) -> T
             where
                 F: FnMut(&mut dyn #trait_type) -> T
             {

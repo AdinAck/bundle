@@ -102,7 +102,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
 
     quote! {
         pub enum #name {
-            #(#types),*
+            #(#types(#types)),*
         }
 
         impl #name {

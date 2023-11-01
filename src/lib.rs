@@ -131,6 +131,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             }
         }
 
+        #[allow(unused)]
         macro_rules! #use_macro_name {
             ( $BUNDLE:ident, $IDENT:ident, $CODE:block ) => {
                 match self {

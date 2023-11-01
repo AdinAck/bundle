@@ -100,7 +100,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let types = bundle_data.types.items;
     let trait_type = bundle_data.trait_type.as_stream();
 
-    let use_macro_name = format_ident!("use_{}", inflector::cases::pascalcase::to_pascal_case(&name.to_string()));
+    let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
 
     quote! {
         pub enum #name {

@@ -5,7 +5,7 @@ use syn::{
     braced,
     Token, Generics
 };
-use quote::quote;
+use quote::{quote, format_ident};
 use proc_macro2::TokenStream as TokenStream2;
 
 // can't believe i have to do this
@@ -100,6 +100,8 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let types = bundle_data.types.items;
     let trait_type = bundle_data.trait_type.as_stream();
 
+    let use_macro_name = format_ident!("use_{}", name);
+
     quote! {
         pub enum #name {
             #(#types(#types)),*
@@ -127,6 +129,16 @@ pub fn bundle(input: TokenStream) -> TokenStream {
                     ),*
                 }
             }
+        }
+
+        macro_rules! #use_macro_name {
+            ( $BUNDLE:ident, $IDENT:ident, $CODE:block ) => {
+                match self {
+                    #(
+                        #name::#types($IDENT) => $CODE
+                    ),*
+                }
+            };
         }
     }.into()
 }

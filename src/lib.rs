@@ -70,19 +70,20 @@ where
 
 struct BundleData {
     name: Ident,
-    trait_type: TypeWithGenerics,
+    trait_type: Option<TypeWithGenerics>,
     types: Set<Ident>
 }
 
 impl Parse for BundleData {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let name: Ident = input.parse()?;
+        let mut trait_ident = None;
 
-        input.parse::<Token![<]>()?;
-
-        let trait_ident: TypeWithGenerics = input.parse()?;
-
-        input.parse::<Token![>]>()?;
+        if input.parse::<Token![<]>().is_ok() {
+            trait_ident = Some(input.parse()?);
+    
+            input.parse::<Token![>]>()?;
+        }
 
         let types: Set<Ident> = input.parse()?;
 
@@ -98,37 +99,12 @@ pub fn bundle(input: TokenStream) -> TokenStream {
 
     let name = bundle_data.name;
     let types = bundle_data.types.items;
-    let trait_type = bundle_data.trait_type.as_stream();
 
     let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
 
-    quote! {
+    let def = quote! {
         pub enum #name {
             #(#types(#types)),*
-        }
-
-        impl #name {
-            fn with<F, T>(&self, mut closure: F) -> T
-            where
-                F: Fn(&dyn #trait_type) -> T
-            {
-                match self {
-                    #(
-                        #name::#types(value) => closure(value)
-                    ),*
-                }
-            }
-
-            fn with_mut<F, T>(&mut self, mut closure: F) -> T
-            where
-                F: FnMut(&mut dyn #trait_type) -> T
-            {
-                match self {
-                    #(
-                        #name::#types(value) => closure(value)
-                    ),*
-                }
-            }
         }
 
         #[allow(unused)]
@@ -141,5 +117,16 @@ pub fn bundle(input: TokenStream) -> TokenStream {
                 }
             };
         }
+    };
+
+    if let Some(trait_type) = bundle_data.trait_type {
+        let trait_impl = trait_type.as_stream();
+
+        quote! {
+            #def
+            #trait_impl
+        }
+    } else {
+        def
     }.into()
 }

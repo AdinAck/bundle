@@ -1,5 +1,5 @@
 [package]
-name = "bundle-proc-macros"
+name = "bundle"
 version = "0.1.0"
 edition = "2021"
 

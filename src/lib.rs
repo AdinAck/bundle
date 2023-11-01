@@ -80,13 +80,13 @@ impl Parse for BundleData {
         let mut trait_ident = None;
 
 
-        // if input.peek(Token![<]) {
+        if input.peek(Token![<]) {
             input.parse::<Token![<]>()?;
 
             trait_ident = Some(input.parse()?);
     
             input.parse::<Token![>]>()?;
-        // }
+        }
 
         let types: Set<Ident> = input.parse()?;
 
@@ -123,11 +123,34 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     };
 
     if let Some(trait_type) = bundle_data.trait_type {
-        let trait_impl = trait_type.as_stream();
+        let trait_type_name = trait_type.as_stream();
 
         quote! {
             #def
-            #trait_impl
+            
+            impl #name {
+                fn with<F, T>(&self, mut closure: F) -> T
+                where
+                    F: Fn(&dyn #trait_type_name) -> T
+                {
+                    match self {
+                        #(
+                            #name::#types(value) => closure(value)
+                        ),*
+                    }
+                }
+
+                fn with_mut<F, T>(&mut self, mut closure: F) -> T
+                where
+                    F: FnMut(&mut dyn #trait_type_name) -> T
+                {
+                    match self {
+                        #(
+                            #name::#types(value) => closure(value)
+                        ),*
+                    }
+                }
+            }
         }
     } else {
         def

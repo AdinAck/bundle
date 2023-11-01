@@ -79,7 +79,10 @@ impl Parse for BundleData {
         let name: Ident = input.parse()?;
         let mut trait_ident = None;
 
-        if input.parse::<Token![<]>().is_ok() {
+
+        if input.peek(Token![<]) {
+            input.parse::<Token![<]>()?;
+
             trait_ident = Some(input.parse()?);
     
             input.parse::<Token![>]>()?;

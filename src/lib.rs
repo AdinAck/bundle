@@ -80,13 +80,13 @@ impl Parse for BundleData {
         let mut trait_ident = None;
 
 
-        if input.peek(Token![<]) {
+        // if input.peek(Token![<]) {
             input.parse::<Token![<]>()?;
 
             trait_ident = Some(input.parse()?);
     
             input.parse::<Token![>]>()?;
-        }
+        // }
 
         let types: Set<Ident> = input.parse()?;
 

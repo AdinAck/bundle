@@ -104,22 +104,10 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let types = bundle_data.types.items;
 
     let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
-    let extract_macro_name = format_ident!("extract_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
 
     let common = quote! {
         pub enum #name {
             #(#types(#types)),*
-        }
-
-        #[allow(unused)]
-        macro_rules! #extract_macro_name {
-            ( $BUNDLE:ident ) => {
-                match $BUNDLE {
-                    #(
-                        #name::#types(value) => value
-                    ),*
-                }
-            };
         }
     };
 
@@ -132,7 +120,11 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             #[allow(unused)]
             macro_rules! #use_macro_name {
                 ( $BUNDLE:ident, |$IDENT:ident| $CODE:block ) => {
-                    $BUNDLE.with(#extract_macro_name!($BUNDLE), |$IDENT| $CODE)
+                    match $BUNDLE {
+                        #(
+                            #name::#types(value) => $BUNDLE.with(value, |$IDENT| $CODE)
+                        ),*
+                    }
                 };
             }
 

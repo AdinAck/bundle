@@ -119,11 +119,11 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             
             #[allow(unused)]
             macro_rules! #use_macro_name {
-                ( $BUNDLE:ident, $IDENT:ident, $CODE:stmt ) => {
+                ( $BUNDLE:ident, .$CODE:ident ($( $ARG:expr ),*) ) => {
                     match $BUNDLE {
                         #(
-                            #name::#types($IDENT) => {
-                                <#types as #trait_type_name>::$CODE
+                            #name::#types(value) => {
+                                <#types as #trait_type_name>::$CODE(value, $( $ARG ),*)
                             }
                         ),*
                     }
@@ -160,10 +160,10 @@ pub fn bundle(input: TokenStream) -> TokenStream {
 
             #[allow(unused)]
             macro_rules! #use_macro_name {
-                ( $BUNDLE:ident, $IDENT:ident, $CODE:block ) => {
+                ( $BUNDLE:ident, .$CODE:ident ($( $ARG:expr ),*) ) => {
                     match $BUNDLE {
                         #(
-                            #name::#types($IDENT) => $CODE
+                            #name::#types(value) => value.$CODE($( $ARG ),*)
                         ),*
                     }
                 };

@@ -109,52 +109,39 @@ pub fn bundle(input: TokenStream) -> TokenStream {
         pub enum #name {
             #(#types(#types)),*
         }
+
+        #[allow(unused)]
+        macro_rules! #use_macro_name {
+            ( $BUNDLE:ident, |$IDENT:ident| $CODE:stmt ) => {
+                match $BUNDLE {
+                    #(
+                        #name::#types($IDENT) => $CODE
+                    ),*
+                }
+            };
+        }
     };
 
-    if let Some(trait_type) = bundle_data.trait_type {
-        let trait_type_name = trait_type.as_stream();
+    common.into()
 
-        quote! {
-            #common
+    // if let Some(trait_type) = bundle_data.trait_type {
+    //     // let trait_type_name = trait_type.as_stream();
 
-            #[allow(unused)]
-            macro_rules! #use_macro_name {
-                ( $BUNDLE:ident, |$IDENT:ident| $CODE:block ) => {
-                    match $BUNDLE {
-                        #(
-                            #name::#types(value) => $BUNDLE.with(value, |$IDENT| $CODE)
-                        ),*
-                    }
-                };
-            }
+    //     quote! {
+    //         #common
 
-            impl #name {
-                fn with<F, T, V>(&self, value: V, closure: F) -> T
-                where
-                    F: FnOnce(V) -> T,
-                    V: #trait_type_name
-                {
-                    closure(value)
-                }
-
-                fn with_ref<F, T, V>(&self, value: &V, closure: F) -> T
-                where
-                    F: FnOnce(&V) -> T,
-                    V: #trait_type_name
-                {
-                    closure(value)
-                }
-
-                fn with_mut<F, T, V>(&self, value: &mut V, closure: F) -> T
-                where
-                    F: FnOnce(&mut V) -> T,
-                    V: #trait_type_name
-                {
-                    closure(value)
-                }
-            }
-        }
-    } else {
-        common
-    }.into()
+    //         #[allow(unused)]
+    //         macro_rules! #use_macro_name {
+    //             ( $BUNDLE:ident, |$IDENT:ident| $CODE:stmt ) => {
+    //                 match $BUNDLE {
+    //                     #(
+    //                         #name::#types($IDENT) => $CODE
+    //                     ),*
+    //                 }
+    //             };
+    //         }
+    //     }
+    // } else {
+    //     common
+    // }.into()
 }

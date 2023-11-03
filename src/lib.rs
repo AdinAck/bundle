@@ -103,7 +103,6 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let name = bundle_data.name;
     let types = bundle_data.types.items;
 
-    let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
     let extract_macro_name = format_ident!("extract_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
 
     let common = quote! {
@@ -128,24 +127,12 @@ pub fn bundle(input: TokenStream) -> TokenStream {
 
         quote! {
             #common
-            
-            #[allow(unused)]
-            macro_rules! #use_macro_name {
-                ( $BUNDLE:ident, .$CODE:ident ($( $ARG:expr ),*) ) => {
-                    match $BUNDLE {
-                        #(
-                            #name::#types(value) => {
-                                <#types as #trait_type_name>::$CODE(value, $( $ARG ),*)
-                            }
-                        ),*
-                    }
-                };
-            }
 
             impl #name {
-                fn with<F, T>(&self, mut closure: F) -> T
+                fn with<F, T, C>(&self, closure: F) -> T
                 where
-                    F: Fn(&dyn #trait_type_name) -> T
+                    F: FnOnce(C) -> T,
+                    C: #trait_type_name
                 {
                     match self {
                         #(
@@ -154,32 +141,32 @@ pub fn bundle(input: TokenStream) -> TokenStream {
                     }
                 }
 
-                fn with_mut<F, T>(&mut self, mut closure: F) -> T
+                fn with_ref<F, T, C>(&self, closure: F) -> T
                 where
-                    F: FnMut(&mut dyn #trait_type_name) -> T
+                    F: FnOnce(&C) -> T,
+                    C: #trait_type_name
                 {
                     match self {
                         #(
-                            #name::#types(value) => closure(value)
+                            #name::#types(value) => closure(&value)
+                        ),*
+                    }
+                }
+
+                fn with_mut<F, T, C>(&self, closure: F) -> T
+                where
+                    F: FnOnce(&mut C) -> T,
+                    C: #trait_type_name
+                {
+                    match self {
+                        #(
+                            #name::#types(value) => closure(&mut value)
                         ),*
                     }
                 }
             }
         }
     } else {
-        quote! {
-            #common
-
-            #[allow(unused)]
-            macro_rules! #use_macro_name {
-                ( $BUNDLE:ident, .$CODE:ident ($( $ARG:expr ),*) ) => {
-                    match $BUNDLE {
-                        #(
-                            #name::#types(value) => value.$CODE($( $ARG ),*)
-                        ),*
-                    }
-                };
-            }
-        }
+        common
     }.into()
 }

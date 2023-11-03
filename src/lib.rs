@@ -132,7 +132,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             #[allow(unused)]
             macro_rules! #use_macro_name {
                 ( $BUNDLE:ident, |$IDENT:ident| $CODE:block ) => {
-                    $BUNDLE.with(#extract_macro_name(self), |$IDENT| $CODE)
+                    $BUNDLE.with(#extract_macro_name($BUNDLE), |$IDENT| $CODE)
                 };
             }
 

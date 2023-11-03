@@ -115,7 +115,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             ( $BUNDLE:ident, |$IDENT:ident| $CODE:stmt ) => {
                 match $BUNDLE {
                     #(
-                        #name::#types($IDENT) => $CODE;
+                        #name::#types($IDENT) => $CODE
                     ),*
                 }
             };

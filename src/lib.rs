@@ -109,17 +109,6 @@ pub fn bundle(input: TokenStream) -> TokenStream {
         pub enum #name {
             #(#types(#types)),*
         }
-
-        #[allow(unused)]
-        macro_rules! #use_macro_name {
-            ( $BUNDLE:ident, $IDENT:ident, $CODE:block ) => {
-                match $BUNDLE {
-                    #(
-                        #name::#types($IDENT) => $CODE
-                    ),*
-                }
-            };
-        }
     };
 
     if let Some(trait_type) = bundle_data.trait_type {
@@ -128,6 +117,19 @@ pub fn bundle(input: TokenStream) -> TokenStream {
         quote! {
             #def
             
+            #[allow(unused)]
+            macro_rules! #use_macro_name {
+                ( $BUNDLE:ident, $IDENT:ident, $CODE:block ) => {
+                    match $BUNDLE {
+                        #(
+                            #name::#types($IDENT) => {
+                                <#types as #trait_type_name>::$CODE
+                            }
+                        ),*
+                    }
+                };
+            }
+
             impl #name {
                 fn with<F, T>(&self, mut closure: F) -> T
                 where
@@ -153,6 +155,19 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             }
         }
     } else {
-        def
+        quote! {
+            #def
+
+            #[allow(unused)]
+            macro_rules! #use_macro_name {
+                ( $BUNDLE:ident, $IDENT:ident, $CODE:block ) => {
+                    match $BUNDLE {
+                        #(
+                            #name::#types($IDENT) => $CODE
+                        ),*
+                    }
+                };
+            }
+        }
     }.into()
 }

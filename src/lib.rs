@@ -103,6 +103,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let name = bundle_data.name;
     let types = bundle_data.types.items;
 
+    let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
     let extract_macro_name = format_ident!("extract_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
 
     let common = quote! {
@@ -128,41 +129,36 @@ pub fn bundle(input: TokenStream) -> TokenStream {
         quote! {
             #common
 
+            #[allow(unused)]
+            macro_rules! #use_macro_name {
+                ( $BUNDLE:ident, |$IDENT:ident| $CODE:block ) => {
+                    $BUNDLE.with(#extract_macro_name(self), |$IDENT| $CODE)
+                };
+            }
+
             impl #name {
-                fn with<F, T, C>(&self, closure: F) -> T
+                fn with<F, T, V>(&self, value: V, closure: F) -> T
                 where
-                    F: FnOnce(C) -> T,
-                    C: #trait_type_name
+                    F: FnOnce(V) -> T,
+                    V: #trait_type_name
                 {
-                    match self {
-                        #(
-                            #name::#types(value) => closure(value)
-                        ),*
-                    }
+                    closure(value)
                 }
 
-                fn with_ref<F, T, C>(&self, closure: F) -> T
+                fn with_ref<F, T, V>(&self, value: &V, closure: F) -> T
                 where
-                    F: FnOnce(&C) -> T,
-                    C: #trait_type_name
+                    F: FnOnce(&V) -> T,
+                    V: #trait_type_name
                 {
-                    match self {
-                        #(
-                            #name::#types(value) => closure(&value)
-                        ),*
-                    }
+                    closure(value)
                 }
 
-                fn with_mut<F, T, C>(&self, closure: F) -> T
+                fn with_mut<F, T, V>(&self, value: &mut V, closure: F) -> T
                 where
-                    F: FnOnce(&mut C) -> T,
-                    C: #trait_type_name
+                    F: FnOnce(&mut V) -> T,
+                    V: #trait_type_name
                 {
-                    match self {
-                        #(
-                            #name::#types(value) => closure(&mut value)
-                        ),*
-                    }
+                    closure(value)
                 }
             }
         }

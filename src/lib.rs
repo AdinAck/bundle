@@ -67,11 +67,11 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
 
     let common = quote! {
+        #[allow(non_camel_case_types)]
         pub enum #name {
             #(#types(#types)),*
         }
 
-        #[allow(unused)]
         macro_rules! #use_macro_name {
             ( $BUNDLE:ident, |$IDENT:ident| $CODE:block ) => {
                 match $BUNDLE {

@@ -3,37 +3,10 @@ use syn::{
     parse::Parse,
     Ident,
     braced,
-    Token, Generics
+    Token
 };
 use quote::{quote, format_ident};
 use proc_macro2::TokenStream as TokenStream2;
-
-// can't believe i have to do this
-#[derive(Debug)]
-struct TypeWithGenerics {
-    ident: Ident,
-    generics: Vec<Ident>
-}
-
-impl TypeWithGenerics {
-    fn as_stream(&self) -> TokenStream2 {
-        let ident = &self.ident;
-        let generics = &self.generics;
-
-        quote! (
-            #ident<#(#generics),*>
-        )
-    }
-}
-
-impl Parse for TypeWithGenerics {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let ident: Ident = input.parse()?;
-        let generics = input.parse::<Generics>()?.type_params().map(|t| t.ident.clone()).collect();
-
-        Ok(Self { ident, generics })
-    }
-}
 
 #[derive(Debug)]
 struct Set<T> {
@@ -70,27 +43,15 @@ where
 
 struct BundleData {
     name: Ident,
-    trait_type: Option<TypeWithGenerics>,
     types: Set<Ident>
 }
 
 impl Parse for BundleData {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let name: Ident = input.parse()?;
-        let mut trait_ident = None;
-
-
-        if input.peek(Token![<]) {
-            input.parse::<Token![<]>()?;
-
-            trait_ident = Some(input.parse()?);
-    
-            input.parse::<Token![>]>()?;
-        }
-
         let types: Set<Ident> = input.parse()?;
 
-        Ok(Self { name, trait_type: trait_ident, types })
+        Ok(Self { name, types })
     }
 }
 
@@ -123,25 +84,4 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     };
 
     common.into()
-
-    // if let Some(trait_type) = bundle_data.trait_type {
-    //     // let trait_type_name = trait_type.as_stream();
-
-    //     quote! {
-    //         #common
-
-    //         #[allow(unused)]
-    //         macro_rules! #use_macro_name {
-    //             ( $BUNDLE:ident, |$IDENT:ident| $CODE:stmt ) => {
-    //                 match $BUNDLE {
-    //                     #(
-    //                         #name::#types($IDENT) => $CODE
-    //                     ),*
-    //                 }
-    //             };
-    //         }
-    //     }
-    // } else {
-    //     common
-    // }.into()
 }

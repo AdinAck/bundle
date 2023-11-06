@@ -74,6 +74,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
 
         #(
             impl Into<#name> for #types {
+                #[inline]
                 fn into(self) -> #name {
                     #name::#types(self)
                 }

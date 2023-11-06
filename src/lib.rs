@@ -72,6 +72,14 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             #(#types(#types)),*
         }
 
+        #(
+            impl Into<#name> for #types {
+                fn into(self) -> #name {
+                    #name::#types(self)
+                }
+            }
+        )*
+
         macro_rules! #use_macro_name {
             ( $BUNDLE:ident, |$IDENT:ident| $CODE:block ) => {
                 match $BUNDLE {

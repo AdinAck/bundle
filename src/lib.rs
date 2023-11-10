@@ -93,7 +93,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
         }
 
         macro_rules! #match_macro_name {
-            ( $VALUE:expr, $TYPE:ty::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
+            ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
                 match $VALUE {
                     #(
                         #types::ATTR => {

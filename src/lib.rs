@@ -65,6 +65,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
     let types = bundle_data.types.items;
 
     let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
+    let match_macro_name = format_ident!("match_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
 
     let common = quote! {
         #[allow(non_camel_case_types)]
@@ -87,6 +88,21 @@ pub fn bundle(input: TokenStream) -> TokenStream {
                     #(
                         #name::#types($IDENT) => $CODE
                     ),*
+                }
+            };
+        }
+
+        macro_rules! #match_macro_name {
+            ( $VALUE:expr, $TYPE:ty::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
+                match $VALUE {
+                    #(
+                        #types::ATTR => {
+                            type $TYPE = #types;
+                            $MATCH
+                        }
+                    )*
+
+                    _ => $ELSE
                 }
             };
         }

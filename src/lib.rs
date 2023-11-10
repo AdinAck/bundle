@@ -82,6 +82,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             }
         )*
 
+        #[allow(unused)]
         macro_rules! #use_macro_name {
             ( $BUNDLE:expr, |$IDENT:ident| $CODE:block ) => {
                 match $BUNDLE {
@@ -92,6 +93,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             };
         }
 
+        #[allow(unused)]
         macro_rules! #match_macro_name {
             ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
                 match $VALUE {

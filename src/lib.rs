@@ -84,10 +84,13 @@ pub fn bundle(input: TokenStream) -> TokenStream {
 
         #[allow(unused)]
         macro_rules! #use_macro_name {
-            ( $BUNDLE:expr, |$IDENT:ident| $CODE:block ) => {
+            ( $BUNDLE:expr, |$TYPE:ident, $LOCAL:expr| $CODE:block ) => {
                 match $BUNDLE {
                     #(
-                        #name::#types($IDENT) => $CODE
+                        #name::#types($LOCAL) => {
+                            type $TYPE = #types;
+                            $CODE
+                        }
                     ),*
                 }
             };

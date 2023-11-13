@@ -1,6 +1,10 @@
 # bundle
 A multi-type container with a static size.
 
+# no_std
+
+This crate is intended for use in `no_std` environments.
+
 # Motivation
 
 Rust trait objects require dynamic memory allocation since the concrete type being dispatched is not known until runtime.

@@ -34,7 +34,7 @@ Memory:
 ##|##### < Total size
  ^
  |
-padding
+padding/tag
 ```
 
 # Usage

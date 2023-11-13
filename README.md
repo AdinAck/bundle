@@ -53,7 +53,7 @@ bundle! {
 
 ```
 
-Now you can invoke methods defined by the common trait on the bundle in a case agnostic manner:
+Now you can invoke methods common to all of the types in the bundle with `use_{bundle_name}!`:
 
 ```rust
 let bundle: Number = { /* fetch number from somewhere... */ }
@@ -61,6 +61,39 @@ let bundle: Number = { /* fetch number from somewhere... */ }
 let ones = use_number!(bundle, |num| {
     num.count_ones() // all three types have this function, wouldn't compile otherwise
 });
+```
+
+## Consts
+
+Instead of dispatching a type within a bundle, you can use `match_{bundle_name}!` to dispatch a type based on the value of a constant within the type.
+
+Example:
+
+```rust
+struct A {
+  const FOO: usize = 1;
+
+  fn do_something() { }
+}
+
+struct B {
+  const FOO: usize = 2;
+
+  fn do_something() { }
+}
+
+bundle! {
+  SomeBundle {
+    A,
+    B
+  }
+}
+
+match_some_bundle!(3, Ty::FOO => {
+  Ty::do_something();
+} else {
+  // this will be the executed branch
+})
 ```
 
 ## Traits

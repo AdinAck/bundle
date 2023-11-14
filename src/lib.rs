@@ -7,9 +7,7 @@ fn impl_bundle(body: DeriveInput) -> TokenStream2 {
     match body.data {
         Data::Enum(e) => {
             for variant in e.variants {
-                for field in variant.fields {
-                    println!("{}", field.ident.unwrap().to_string());
-                }
+                println!("{}", variant.ident.to_string());
             }
         }
         _ => panic!("Bundle must be an enum")

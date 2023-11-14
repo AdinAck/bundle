@@ -1,77 +1,62 @@
 use proc_macro::TokenStream;
-use syn::{DeriveInput, Data};
-use quote::quote;
+use syn::{ItemEnum, Ident};
+use quote::{quote, format_ident};
 use proc_macro2::TokenStream as TokenStream2;
 
-fn impl_bundle(body: DeriveInput) -> TokenStream2 {
-    match body.data {
-        Data::Enum(e) => {
-            for variant in e.variants {
-                println!("{}", variant.ident.to_string());
-            }
+#[proc_macro_attribute]
+pub fn bundle(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let item = TokenStream2::from(item);
+
+    let e: ItemEnum = syn::parse2(item).expect("Bundle must be enum");
+
+    let vis = e.vis;
+    let ident = e.ident;
+    let variants: Vec<Ident> = e.variants.iter().map(|v| v.ident.clone()).collect();
+
+    let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&ident.to_string()));
+    let match_macro_name = format_ident!("match_{}", inflector::cases::snakecase::to_snake_case(&ident.to_string()));
+    
+    quote! {
+        #vis enum #ident {
+            #(
+                #variants(#variants)
+            ),*
         }
-        _ => panic!("Bundle must be an enum")
-    }
 
-    quote! { }
+        #(
+            impl Into<#ident> for #variants {
+                #[inline]
+                fn into(self) -> #ident {
+                    #ident::#variants(self)
+                }
+            }
+        )*
 
-    // let input: TokenStream2 = input.into();
+        #[allow(unused)]
+        macro_rules! #use_macro_name {
+            ( $BUNDLE:expr, |$LOCAL:ident| $CODE:block ) => {
+                match $BUNDLE {
+                    #(
+                        #ident::#variants($LOCAL) => $CODE
+                    ),*
+                }
+            };
+        }
 
-    // let bundle_data: BundleData = syn::parse2(input).unwrap();
+        #[allow(unused)]
+        macro_rules! #match_macro_name {
+            ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
+                match $VALUE {
+                    #(
+                        #variants::$ATTR => {
+                            type $TYPE = #variants;
+                            $MATCH
+                        }
+                    )*
 
-    // let name = bundle_data.name;
-    // let types = bundle_data.types.items;
-
-    // let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
-    // let match_macro_name = format_ident!("match_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
-
-    // let common = quote! {
-    //     #[allow(non_camel_case_types)]
-    //     pub enum #name {
-    //         #(#types(#types)),*
-    //     }
-
-    //     #(
-    //         impl Into<#name> for #types {
-    //             #[inline]
-    //             fn into(self) -> #name {
-    //                 #name::#types(self)
-    //             }
-    //         }
-    //     )*
-
-    //     #[allow(unused)]
-    //     macro_rules! #use_macro_name {
-    //         ( $BUNDLE:expr, |$LOCAL:ident| $CODE:block ) => {
-    //             match $BUNDLE {
-    //                 #(
-    //                     #name::#types($LOCAL) => $CODE
-    //                 ),*
-    //             }
-    //         };
-    //     }
-
-    //     #[allow(unused)]
-    //     macro_rules! #match_macro_name {
-    //         ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
-    //             match $VALUE {
-    //                 #(
-    //                     #types::$ATTR => {
-    //                         type $TYPE = #types;
-    //                         $MATCH
-    //                     }
-    //                 )*
-
-    //                 _ => $ELSE
-    //             }
-    //         };
-    //     }
-    // };
-
-    // common
-}
-
-#[proc_macro_derive(Bundle)]
-pub fn bundle(input: TokenStream) -> TokenStream {
-    impl_bundle(syn::parse2(input.into()).unwrap()).into()
+                    _ => $ELSE
+                }
+            };
+        }
+    }.into()
 }

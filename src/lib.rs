@@ -1,83 +1,33 @@
 use proc_macro::TokenStream;
-use syn::{
-    parse::Parse,
-    Ident,
-    braced,
-    Token
-};
+use syn::{ItemEnum, Ident};
 use quote::{quote, format_ident};
 use proc_macro2::TokenStream as TokenStream2;
 
-#[derive(Debug)]
-struct Set<T> {
-    items: Vec<T>,
-}
+#[proc_macro_attribute]
+pub fn bundle(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let item = TokenStream2::from(item);
 
-impl<T> Parse for Set<T>
-where
-    T: Parse + PartialEq,
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let mut items = Vec::new();
+    let e: ItemEnum = syn::parse2(item).expect("Bundle must be enum");
 
-        let content;
-        braced!(content in input);
+    let vis = e.vis;
+    let ident = e.ident;
+    let variants: Vec<Ident> = e.variants.iter().map(|v| v.ident.clone()).collect();
 
-        while !content.is_empty() {
-            let item: T = content.parse()?;
-            if items.contains(&item) {
-                panic!("Identifiers must be unique.")
-            }
-            items.push(item);
-
-            if content.is_empty() {
-                break;
-            }
-
-            content.parse::<Token![,]>()?;
-        }
-
-        Ok(Set { items })
-    }
-}
-
-struct BundleData {
-    name: Ident,
-    types: Set<Ident>
-}
-
-impl Parse for BundleData {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let name: Ident = input.parse()?;
-        let types: Set<Ident> = input.parse()?;
-
-        Ok(Self { name, types })
-    }
-}
-
-#[proc_macro]
-pub fn bundle(input: TokenStream) -> TokenStream {
-    let input: TokenStream2 = input.into();
-
-    let bundle_data: BundleData = syn::parse2(input).unwrap();
-
-    let name = bundle_data.name;
-    let types = bundle_data.types.items;
-
-    let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
-    let match_macro_name = format_ident!("match_{}", inflector::cases::snakecase::to_snake_case(&name.to_string()));
-
-    let common = quote! {
-        #[allow(non_camel_case_types)]
-        pub enum #name {
-            #(#types(#types)),*
+    let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&ident.to_string()));
+    let match_macro_name = format_ident!("match_{}", inflector::cases::snakecase::to_snake_case(&ident.to_string()));
+    
+    quote! {
+        #vis enum #ident {
+            #(
+                #variants(#variants)
+            ),*
         }
 
         #(
-            impl Into<#name> for #types {
+            impl Into<#ident> for #variants {
                 #[inline]
-                fn into(self) -> #name {
-                    #name::#types(self)
+                fn into(self) -> #ident {
+                    #ident::#variants(self)
                 }
             }
         )*
@@ -87,7 +37,7 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             ( $BUNDLE:expr, |$LOCAL:ident| $CODE:block ) => {
                 match $BUNDLE {
                     #(
-                        #name::#types($LOCAL) => $CODE
+                        #ident::#variants($LOCAL) => $CODE
                     ),*
                 }
             };
@@ -98,8 +48,8 @@ pub fn bundle(input: TokenStream) -> TokenStream {
             ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
                 match $VALUE {
                     #(
-                        #types::$ATTR => {
-                            type $TYPE = #types;
+                        #variants::$ATTR => {
+                            type $TYPE = #variants;
                             $MATCH
                         }
                     )*
@@ -108,7 +58,5 @@ pub fn bundle(input: TokenStream) -> TokenStream {
                 }
             };
         }
-    };
-
-    common.into()
+    }.into()
 }

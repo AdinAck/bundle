@@ -47,13 +47,13 @@ padding/tag
 To create a bundle, simply invoke the proc macro with the following format:
 
 ```rust
-bundle! {
-  Number {
-    u8,
-    u16,
-    u32
-  }
+#[bundle]
+Number {
+  u8,
+  u16,
+  u32
 }
+
 
 ```
 
@@ -86,12 +86,12 @@ struct B {
   fn do_something() { }
 }
 
-bundle! {
-  SomeBundle {
-    A,
-    B
-  }
+#[bundle]
+SomeBundle {
+  A,
+  B
 }
+
 
 match_some_bundle!(3, Ty::FOO => {
   Ty::do_something();
@@ -125,12 +125,11 @@ impl MyTrait<Y> for A { ... } // uh oh!
 impl MyTrait<X> for B { ... }
 impl MyTrait<X> for C { ... }
 
-bundle! {
-  TraitBundle {
-    A,
-    B,
-    C
-  }
+#[bundle]
+TraitBundle {
+  A,
+  B,
+  C
 }
 ```
 

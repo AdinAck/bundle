@@ -1,7 +1,7 @@
 # bundle
 A multi-type container with a static size.
 
-# no_std
+## no_std
 
 This crate is intended for use in `no_std` environments.
 
@@ -164,3 +164,9 @@ use_trait_bundle!(bundle, |t| {
 ```
 
 Naturally, if the `do_something_with_type` function required conformance to `MyTrait<Y>` the program would not compile, because not all types in the bundle implement that trait.
+
+# Design Considerations
+
+## Safety
+
+The `#[bundle]` macro cannot generate unsafe code.

@@ -48,7 +48,7 @@ To create a bundle, simply invoke the proc macro with the following format:
 
 ```rust
 #[bundle]
-Number {
+enum Number {
   u8,
   u16,
   u32
@@ -87,7 +87,7 @@ struct B {
 }
 
 #[bundle]
-SomeBundle {
+enum SomeBundle {
   A,
   B
 }
@@ -126,7 +126,7 @@ impl MyTrait<X> for B { ... }
 impl MyTrait<X> for C { ... }
 
 #[bundle]
-TraitBundle {
+enum TraitBundle {
   A,
   B,
   C

@@ -13,7 +13,7 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     if let Some(export) = &export {
         let s = export.to_string();
-        if s != "export" {
+        if s != "macro_export" {
             panic!("Unexpected argument \"{}\"", s);
         }
     }
@@ -49,7 +49,7 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         )*
 
-        #export
+        #[#export]
         #[allow(unused)]
         macro_rules! #use_macro_name {
             ( $BUNDLE:expr, |$LOCAL:ident| $CODE:block ) => {
@@ -61,7 +61,7 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
         }
 
-        #export
+        #[#export]
         #[allow(unused)]
         macro_rules! #match_macro_name {
             ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {

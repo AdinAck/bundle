@@ -9,14 +9,16 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = TokenStream2::from(item);
 
     // for now there is only one possible optional argument: "export"
-    let export: Option<Ident> = syn::parse2(args).ok();
+    let arg: Option<Ident> = syn::parse2(args).ok();
 
-    if let Some(export) = &export {
-        let s = export.to_string();
-        if s != "macro_export" {
+    let export = arg.as_ref().map(|arg| {
+        let s = arg.to_string();
+        if s != "export" {
             panic!("Unexpected argument \"{}\"", s);
         }
-    }
+
+        quote! { #[macro_export] }
+    });
 
     let e: ItemEnum = syn::parse2(item).expect("Bundle must be enum");
 
@@ -49,7 +51,7 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         )*
 
-        #[#export]
+        #export
         #[allow(unused)]
         macro_rules! #use_macro_name {
             ( $BUNDLE:expr, |$LOCAL:ident| $CODE:block ) => {
@@ -61,7 +63,7 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
         }
 
-        #[#export]
+        #export
         #[allow(unused)]
         macro_rules! #match_macro_name {
             ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {

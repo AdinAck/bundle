@@ -1,11 +1,24 @@
 use proc_macro::TokenStream;
-use syn::{ItemEnum, Ident};
-use quote::{quote, format_ident};
 use proc_macro2::TokenStream as TokenStream2;
+use quote::{format_ident, quote};
+use syn::{Ident, ItemEnum};
 
 #[proc_macro_attribute]
-pub fn bundle(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = TokenStream2::from(attr);
     let item = TokenStream2::from(item);
+
+    // for now there is only one possible optional argument: "export"
+    let arg: Option<Ident> = syn::parse2(args).ok();
+
+    let export = arg.as_ref().map(|arg| {
+        let s = arg.to_string();
+        if s != "export" {
+            panic!("Unexpected argument \"{}\"", s);
+        }
+
+        quote! { #[macro_export] }
+    });
 
     let e: ItemEnum = syn::parse2(item).expect("Bundle must be enum");
 
@@ -13,9 +26,15 @@ pub fn bundle(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let ident = e.ident;
     let variants: Vec<Ident> = e.variants.iter().map(|v| v.ident.clone()).collect();
 
-    let use_macro_name = format_ident!("use_{}", inflector::cases::snakecase::to_snake_case(&ident.to_string()));
-    let match_macro_name = format_ident!("match_{}", inflector::cases::snakecase::to_snake_case(&ident.to_string()));
-    
+    let use_macro_name = format_ident!(
+        "use_{}",
+        inflector::cases::snakecase::to_snake_case(&ident.to_string())
+    );
+    let match_macro_name = format_ident!(
+        "match_{}",
+        inflector::cases::snakecase::to_snake_case(&ident.to_string())
+    );
+
     quote! {
         #vis enum #ident {
             #(
@@ -32,6 +51,7 @@ pub fn bundle(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         )*
 
+        #export
         #[allow(unused)]
         macro_rules! #use_macro_name {
             ( $BUNDLE:expr, |$LOCAL:ident| $CODE:block ) => {
@@ -43,6 +63,7 @@ pub fn bundle(_attr: TokenStream, item: TokenStream) -> TokenStream {
             };
         }
 
+        #export
         #[allow(unused)]
         macro_rules! #match_macro_name {
             ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
@@ -58,5 +79,6 @@ pub fn bundle(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             };
         }
-    }.into()
+    }
+    .into()
 }

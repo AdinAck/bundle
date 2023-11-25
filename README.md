@@ -47,7 +47,7 @@ padding/tag
 To create a bundle, simply invoke the proc macro with the following format:
 
 ```rust
-#[bundle]
+#[bundle] // or #[bundle(export)] to export generated macros
 enum Number {
   u8,
   u16,

@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{Ident, ItemEnum};
+use syn::{Ident, ItemEnum, Variant};
 
 #[proc_macro_attribute]
 pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -24,7 +24,14 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let vis = e.vis;
     let ident = e.ident;
-    let variants: Vec<Ident> = e.variants.iter().map(|v| v.ident.clone()).collect();
+    let variants: Vec<Variant> = e.variants.iter().cloned().collect();
+    let variant_idents: Vec<Ident> = e.variants.iter().cloned().map(|v| v.ident).collect();
+
+    for variant in &e.variants {
+        if variant.fields.len() != 1 {
+            panic!("Bundle variants must hold corresponding type.")
+        }
+    }
 
     let use_macro_name = format_ident!(
         "use_{}",
@@ -38,15 +45,15 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
     quote! {
         #vis enum #ident {
             #(
-                #variants(#variants)
+                #variants
             ),*
         }
 
         #(
-            impl Into<#ident> for #variants {
+            impl Into<#ident> for #variant_idents {
                 #[inline]
                 fn into(self) -> #ident {
-                    #ident::#variants(self)
+                    #ident::#variant_idents(self)
                 }
             }
         )*
@@ -57,7 +64,7 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
             ( $BUNDLE:expr, |$LOCAL:ident| $CODE:block ) => {
                 match $BUNDLE {
                     #(
-                        #ident::#variants($LOCAL) => $CODE
+                        #ident::#variant_idents($LOCAL) => $CODE
                     ),*
                 }
             };
@@ -70,7 +77,7 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
                 match $VALUE {
                     #(
                         #variants::$ATTR => {
-                            type $TYPE = #variants;
+                            type $TYPE = #variant_idents;
                             $MATCH
                         }
                     )*

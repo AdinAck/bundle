@@ -76,7 +76,7 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
             ( $VALUE:expr, $TYPE:ident::$ATTR:ident => $MATCH:block else $ELSE:block ) => {
                 match $VALUE {
                     #(
-                        #variants::$ATTR => {
+                        #variant_idents::$ATTR => {
                             type $TYPE = #variant_idents;
                             $MATCH
                         }

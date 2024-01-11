@@ -1,9 +1,0 @@
-[package]
-name = "bundle-tests"
-version = "0.1.0"
-edition = "2021"
-
-[dev-dependencies]
-bundle-macro = { path = "../bundle-macro" }
-tiny-serde = { git = "https://github.com/AdinAck/tiny-serde", branch = "main" }
-tiny-serde-macros = { git = "https://github.com/AdinAck/tiny-serde-macros", branch = "main" }

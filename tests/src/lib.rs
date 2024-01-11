@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use bundle_macro::bundle;
+    use bundle::bundle;
     use tiny_serde::prelude::*;
     use tiny_serde::Serialize;
-    use tiny_serde_macros::Serialize;
 
     trait Foo {
         fn bar(&self) -> u8;

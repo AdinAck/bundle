@@ -7,17 +7,17 @@ This crate is intended for use in `no_std` environments.
 
 # Motivation
 
-Rust trait objects require dynamic memory allocation since the concrete type being dispatched is not known until runtime.
+Trait objects require dynamic memory allocation since the concrete type being dispatched is not known until runtime.
 
 For `no_std` environments, a global allocator may be limited, or not available at all. But dynamic dispatch may still be desired.
 
 # Solution
 
-This crate provides a procedural macro for generating an enum type that contains a finite set of concrete types.
+This crate provides an attribute macro for generating an enum type that contains a finite set of concrete types which implement a common trait.
 
-Each case of the enum corresponds to a type, in the form of an associated type.
+Each variant of the enum corresponds to a type, in the form of a tuple variant.
 
-Rust enums occupy as much space as the largest associated type:
+Rust enums occupy as much space as the largest variant:
 
 ```rust
 enum MultipleTypes {
@@ -44,129 +44,86 @@ padding/tag
 # Usage
 ## Basic
 
-To create a bundle, simply invoke the proc macro with the following format:
+To create a bundle, simply mark an enum as a such:
 
 ```rust
-#[bundle] // or #[bundle(export)] to export generated macros
-enum Number {
-  u8,
-  u16,
-  u32
+trait Foo {
+    fn bar(&self) -> u8;
 }
 
-
-```
-
-Now you can invoke methods common to all of the types in the bundle with `use_{bundle_name}!`:
-
-```rust
-let bundle: Number = { /* fetch number from somewhere... */ }
-
-let ones = use_number!(bundle, |num| {
-    num.count_ones() // all three types have this function, wouldn't compile otherwise
-});
-```
-
-## Consts
-
-Instead of dispatching a type within a bundle, you can use `match_{bundle_name}!` to dispatch a type based on the value of a constant within the type.
-
-Example:
-
-```rust
-struct A {
-  const FOO: usize = 1;
-
-  fn do_something() { }
-}
-
-struct B {
-  const FOO: usize = 2;
-
-  fn do_something() { }
-}
-
-#[bundle]
-enum SomeBundle {
-  A,
-  B
-}
-
-
-match_some_bundle!(3, Ty::FOO => {
-  Ty::do_something();
-} else {
-  // this will be the executed branch
-})
-```
-
-## Traits
-
-Bundles can be used to hold multiple types that implement a common trait.
-
-Because bundles are statically analyzed, you need not specify this common trait when creating the bundle. It will automatically be determined by the Rust compiler.
-
-```rust
-trait MyTrait<T> {
-  fn some_func() { }
-}
-
-// for trait generic
-struct X { }
-struct Y { }
-
-// types for bundle
-struct A { }
-struct B { }
-struct C { }
-
-impl MyTrait<X> for A { ... }
-impl MyTrait<Y> for A { ... } // uh oh!
-impl MyTrait<X> for B { ... }
-impl MyTrait<X> for C { ... }
-
-#[bundle]
-enum TraitBundle {
-  A,
-  B,
-  C
+#[bundle(Foo)]
+enum MyBundle {
+  FirstType,
+  SecondType,
+  ThirdType
 }
 ```
 
-In this case, we are storing three types `A`, `B`, and `C` that all implement `MyTrait<X>`, but `A` also implements `MyTrait<Y>`...
-
-So if we tried:
+Now you can invoke methods defined by the shared trait:
 
 ```rust
-let bundle: TraitBundle = { /* who knows what this is! */ }
+impl Foo for FirstType {
+    fn bar(&self) -> u8 {
+        0
+    }
+}
 
-use_trait_bundle!(bundle, |t| {
-  t.some_func(); // multiple `impl`s satisfying `A: MyTrait<_>` found
-});
+impl Foo for SecondType {
+    fn bar(&self) -> u8 {
+        1
+    }
+}
+
+impl Foo for ThirdType {
+    fn bar(&self) -> u8 {
+        2
+    }
+}
+
+let bundle: MyBundle = { /* fetch bundle from somewhere... */ }
+
+let bar = bundle.inner().bar(); // will be 0, 1, or 2 depending on what's in the bundle
 ```
 
-Rust can't know which implementation we want, and as of the creation date of this crate, generic closures aren't a proposed language feature.
+## Other macros
 
-The solution is to create a function that accepts a generic parameter that is constrained by the desired trait and applicable concrete type:
+Bundles can still be used with other macros as long as the bundle is the first one executed.
+
+For example, use with `derive` where types `A`, `B` and `C` implement `Clone`:
 
 ```rust
-fn do_something_with_type<T: MyTrait<X>>(t: T) {
-  t.some_func();
+#[bundle(SomeTrait)] // this goes first so derive sees the transformed enum
+#[derive(Clone)]
+enum MyBundle {
+    A,
+    B,
+    C,
 }
 ```
 
-Now this can be used in the macro:
+## Generics
+
+If generics are required for your bundle, you can add them like so:
 
 ```rust
-use_trait_bundle!(bundle, |t| {
-  do_something_with_type(t); // works!
-});
+#[bundle(BundleTrait)]
+enum MyBundle<T: Trait1, U: Trait2> {
+    A(A<T>), // notice you must now create the tuple variant yourself
+    B,
+    C(C<U>),
+}
 ```
-
-Naturally, if the `do_something_with_type` function required conformance to `MyTrait<Y>` the program would not compile, because not all types in the bundle implement that trait.
 
 # Design Considerations
 
+## Performance
+
+Using a bundle requires 2 look ups:
+1. Matching the enum
+2. Consulting the vtable for dispatch
+
+The optimizer may realize these two lookups are always the same and optimize it out.
+
 ## Safety
 
-The `#[bundle]` macro cannot generate unsafe code.
+The `#[bundle(...)]` macro cannot generate unsafe code.

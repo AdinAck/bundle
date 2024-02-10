@@ -51,7 +51,7 @@ trait Foo {
     fn bar(&self) -> u8;
 }
 
-#[bundle(Foo)]
+#[bundle]
 enum MyBundle {
   FirstType,
   SecondType,
@@ -82,7 +82,7 @@ impl Foo for ThirdType {
 
 let bundle: MyBundle = { /* fetch bundle from somewhere... */ }
 
-let bar = bundle.inner().bar(); // will be 0, 1, or 2 depending on what's in the bundle
+let bar = use_my_bundle!(bundle, |inner| { inner.bar() }); // will be 0, 1, or 2 depending on what's in the bundle
 ```
 
 ## Other macros
@@ -92,7 +92,7 @@ Bundles can still be used with other macros as long as the bundle is the first o
 For example, use with `derive` where types `A`, `B` and `C` implement `Clone`:
 
 ```rust
-#[bundle(SomeTrait)] // this goes first so derive sees the transformed enum
+#[bundle] // this goes first so derive sees the transformed enum
 #[derive(Clone)]
 enum MyBundle {
     A,
@@ -106,7 +106,7 @@ enum MyBundle {
 If generics are required for your bundle, you can add them like so:
 
 ```rust
-#[bundle(BundleTrait)]
+#[bundle]
 enum MyBundle<T: Trait1, U: Trait2> {
     A(A<T>), // notice you must now create the tuple variant yourself
     B,
@@ -116,14 +116,6 @@ enum MyBundle<T: Trait1, U: Trait2> {
 
 # Design Considerations
 
-## Performance
-
-Using a bundle requires 2 look ups:
-1. Matching the enum
-2. Consulting the vtable for dispatch
-
-The optimizer may realize these two lookups are always the same and optimize it out.
-
 ## Safety
 
-The `#[bundle(...)]` macro cannot generate unsafe code.
+The `#[bundle]` macro cannot generate unsafe code.

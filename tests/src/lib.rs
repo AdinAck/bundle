@@ -5,51 +5,75 @@ mod tests {
     use tiny_serde::Serialize;
 
     trait Foo {
-        fn bar(&self) -> u8;
+        fn bar(self) -> u8;
     }
 
     #[derive(Clone)]
     struct A;
-    #[derive(Clone)]
+    #[derive(Clone, Debug, PartialEq)]
     struct B;
     #[derive(Clone)]
     struct C;
 
     impl Foo for A {
-        fn bar(&self) -> u8 {
+        fn bar(self) -> u8 {
             0
         }
     }
 
     impl Foo for B {
-        fn bar(&self) -> u8 {
+        fn bar(self) -> u8 {
             1
         }
     }
 
     impl Foo for C {
-        fn bar(&self) -> u8 {
+        fn bar(self) -> u8 {
             2
         }
     }
 
     #[test]
     fn basic() {
-        #[bundle(Foo)]
+        #[bundle]
         enum MyBundle {
             A,
             B,
             C,
         }
 
-        let mut bundle = MyBundle::B(B);
+        let bundle = MyBundle::B(B);
 
-        assert_eq!(bundle.inner().bar(), 1);
+        assert_eq!(use_my_bundle!(bundle, |inner| { inner.bar() }), 1);
+    }
+
+    #[test]
+    fn impls() {
+        #[bundle]
+        enum MyBundle {
+            A,
+            B,
+            C,
+        }
+
+        // if you want the bundle itself to
+        // implement the common trait as well
+        // so the use macro is not needed elsewhere,
+        // you can do so like this
+        impl Foo for MyBundle {
+            fn bar(self) -> u8 {
+                use_my_bundle!(self, |inner| { inner.bar() })
+            }
+        }
+
+        let bundle = MyBundle::A(A);
+
+        assert_eq!(bundle.bar(), 0);
     }
 
     #[test]
     fn derive() {
-        #[bundle(Foo)]
+        #[bundle]
         #[derive(Clone)]
         enum MyBundle {
             A,
@@ -59,7 +83,7 @@ mod tests {
 
         let bundle = MyBundle::C(C);
 
-        assert_eq!(bundle.clone().inner().bar(), 2);
+        assert_eq!(use_my_bundle!(bundle, |inner| { inner.bar() }), 2);
     }
 
     #[test]
@@ -81,24 +105,24 @@ mod tests {
         }
 
         impl Foo for A {
-            fn bar(&self) -> u8 {
+            fn bar(self) -> u8 {
                 self.val
             }
         }
 
         impl Foo for B {
-            fn bar(&self) -> u8 {
+            fn bar(self) -> u8 {
                 self.val as u8
             }
         }
 
         impl Foo for C {
-            fn bar(&self) -> u8 {
+            fn bar(self) -> u8 {
                 self.val + self.other.val
             }
         }
 
-        #[bundle(Foo)]
+        #[bundle]
         #[derive(Serialize)]
         #[repr(u8)]
         enum MyBundle {
@@ -138,7 +162,7 @@ mod tests {
         impl Foo for B {}
         impl<T: Foo> Foo for C<T> {}
 
-        #[bundle(Foo)]
+        #[bundle]
         enum MyBundle<T: Bar, U: Foo> {
             A(A<T>),
             B,

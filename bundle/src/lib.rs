@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
-use proc_macro2::{Span, TokenStream as TokenStream2};
-use quote::quote;
+use proc_macro2::TokenStream as TokenStream2;
+use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated, token::Paren, Field, FieldMutability, Fields, FieldsUnnamed, Ident,
     ItemEnum, Type, Visibility,
@@ -20,11 +20,9 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args: Option<Ident> = syn::parse2(TokenStream2::from(attr)).ok();
     let item = TokenStream2::from(item);
 
-    // get trait ident
-    let tr = args
-        .as_ref()
-        .map(|arg| arg.clone())
-        .expect("A common trait must be specified: \"#[bundle(Trait)]\"");
+    let export = args
+        .and_then(|arg| Some(arg.to_string() == "export"))
+        .and_then(|present| present.then_some(quote! { #[macro_export] }));
 
     // parse enum body
     let mut e: ItemEnum = syn::parse2(item).expect("Bundle must be an enum.");
@@ -69,7 +67,6 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
         .collect();
 
     // extract visibility, ident, variant idents/types, and generics for generation
-    let vis = e.vis.clone();
     let ident = e.ident.clone();
     let (impl_generics, ty_generics, where_clause) = e.generics.split_for_impl().clone();
     let variant_idents: Vec<Ident> = e.variants.iter().cloned().map(|v| v.ident).collect();
@@ -85,23 +82,17 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
         })
         .collect();
 
-    // generate variant variables for match statement
-    let variant_vars: Vec<Ident> = variant_idents
-        .iter()
-        .map(|i| {
-            Ident::new(
-                &inflector::cases::snakecase::to_snake_case(&i.to_string()),
-                Span::call_site(),
-            )
-        })
-        .collect();
-
     // validate variants hold eactly one type
     for variant in &e.variants {
         if variant.fields.len() != 1 {
             panic!("Bundle variants must hold exacly one type.")
         }
     }
+
+    let use_macro_name = format_ident!(
+        "use_{}",
+        inflector::cases::snakecase::to_snake_case(&ident.to_string())
+    );
 
     quote! {
         #e
@@ -116,15 +107,17 @@ pub fn bundle(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         )*
 
-        // impl for inner func
-        impl #impl_generics #ident #ty_generics #where_clause {
-            #vis fn inner(&mut self) -> &mut dyn #tr {
-                match self {
+        // use macro for dispatch
+        #[allow(unused)]
+        #export
+        macro_rules! #use_macro_name {
+            ( $BUNDLE:expr, |$LOCAL:ident| $CODE:block ) => {
+                match $BUNDLE {
                     #(
-                        #ident::#variant_idents(#variant_vars) => #variant_vars
+                        #ident::#variant_idents($LOCAL) => $CODE
                     ),*
                 }
-            }
+            };
         }
     }
     .into()

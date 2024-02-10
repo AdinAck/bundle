@@ -13,7 +13,7 @@ For `no_std` environments, a global allocator may be limited, or not available a
 
 # Solution
 
-This crate provides an attribute macro for generating an enum type that contains a finite set of concrete types which implement a common trait.
+This crate provides an attribute macro for generating an enum type that contains a finite set of concrete types.
 
 Each variant of the enum corresponds to a type, in the form of a tuple variant.
 
